@@ -64,20 +64,6 @@ public class Word
 
     public void SetCharacterClass(CharacterClass characterClass) {
         this.characterClass = characterClass;
-
-        switch (characterClass)
-        {
-            case (CharacterClass.Fighter):
-                hitPoints = 3f;
-                break;
-            case (CharacterClass.Thief):
-                hitPoints = 1f;
-                break;
-            case (CharacterClass.Wizard):
-                hitPoints = 2f;
-                break;
-        }
-
         this.display.SetSprite(characterClass);
     }
 
@@ -138,15 +124,8 @@ public class Word
 
     public virtual bool StealingTreasure()
     {
-        return display.transform.position.y < 0;
+        return display.transform.position.y < -0.5f;
     }
-
-    /*
-    public virtual void RandomWord(List<Word> words)
-    {
-        SetWord(WordGenerator.GetRandomClean(words));
-    }
-    */
 
     public virtual void SetWord(string word)
     {
