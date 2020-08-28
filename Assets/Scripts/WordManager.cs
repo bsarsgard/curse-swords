@@ -7,6 +7,7 @@ using System.Linq;
 using UnityEngine.SceneManagement;
 using UnityEngine.EventSystems;
 using System.Security.Cryptography;
+using UnityEditor;
 
 public class WordManager: MonoBehaviour
 {
@@ -196,18 +197,28 @@ public class WordManager: MonoBehaviour
             }
         }
     }
-    public string GetRandomWord(string[] list)
-    {
-        string randomWord = "error";
-        int tries = 0;
-        do
-        {
-            int randomIndex = UnityEngine.Random.Range(0, list.Length);
-            randomWord = list[randomIndex];
-        } while (words.Any(x => randomWord[0] == x.word[0]) && tries++ < 50);
 
-        //Debug.Log(randomWord + " after " + tries + " tries");
-        return randomWord.Trim();
+    public string GetRandomWord(string[] list, bool hardPass)
+    {
+        string randomWord = null;
+        int tries = 0;
+        while (randomWord == null && tries++ < 100) {
+            int randomIndex = UnityEngine.Random.Range(0, list.Length);
+            randomWord = list[randomIndex].Trim();
+            if (words.Any(x => randomWord[0] == x.word[0]))
+            {
+                randomWord = null;
+            }
+        }
+
+        if (randomWord == null && !hardPass)
+        {
+            // couldn't find a word but not a hard pass so just pick something
+            int randomIndex = UnityEngine.Random.Range(0, list.Length);
+            randomWord = list[randomIndex].Trim();
+        }
+
+        return randomWord;
     }
 
     public void AddChests(int count)
@@ -287,33 +298,42 @@ public class WordManager: MonoBehaviour
 
     public void AddTreasure(Vector3 position)
     {
-        TreasureWord word = new TreasureWord(GetRandomWord(cleans), wordSpawner.SpawnTreasure(position), streak);
-
-        if (word.characterClass == Word.CharacterClass.TreasureSword && !showedSwordTip)
+        string theWord = GetRandomWord(cleans, true);
+        if (theWord != null)
         {
-            showedSwordTip = true;
-            AddTip("Collect Swords to unlock words in Curse Sword phrases", new Vector3(0, 0, 0));
+            TreasureWord word = new TreasureWord(theWord, wordSpawner.SpawnTreasure(position), streak);
+
+            if (word.characterClass == Word.CharacterClass.TreasureSword && !showedSwordTip)
+            {
+                showedSwordTip = true;
+                AddTip("Collect Swords to unlock words in Curse Sword phrases", new Vector3(0, 0, 0));
+            }
+            words.Add(word);
         }
-        words.Add(word);
     }
 
     public void AddSpell()
     {
-        activeSpell = new SpellWord(GetRandomWord(phrases), wordSpawner.SpawnSpell());
+        activeSpell = new SpellWord(GetRandomWord(phrases, false), wordSpawner.SpawnSpell());
         words.Add(activeSpell);
     }
 
     public void AddBaddies()
     {
-        words.Add(new BaddieWord(GetRandomWord(curses), wordSpawner.SpawnBaddie()));
+        words.Add(new BaddieWord(GetRandomWord(curses, false), wordSpawner.SpawnBaddie()));
     }
 
     public void AddGoodie()
     {
-        var rnd = new System.Random();
-        Word.CharacterClass characterClass = (Word.CharacterClass)rnd.Next(3);
-        Word word = new GoodieWord(GetRandomWord(cleans), wordSpawner.SpawnGoodie(), characterClass);
-        words.Add(word);
+        string theWord = GetRandomWord(cleans, true);
+
+        if (theWord != null) {
+            var rnd = new System.Random();
+            Word.CharacterClass characterClass = (Word.CharacterClass)rnd.Next(3);
+
+            Word word = new GoodieWord(theWord, wordSpawner.SpawnGoodie(), characterClass);
+            words.Add(word);
+        }
     }
 
     private void AddEffect(Word word, Sprite sprite, Color color)
@@ -435,7 +455,7 @@ public class WordManager: MonoBehaviour
                     else if (activeWord is SpellWord)
                     {
                         CastSpell();
-                        activeWord.SetWord(GetRandomWord(phrases));
+                        activeWord.SetWord(GetRandomWord(phrases, false));
                     }
                     else if (activeWord is TreasureWord)
                     {
@@ -477,7 +497,7 @@ public class WordManager: MonoBehaviour
                             PlayClip(audioHit2);
                             AddEffect(activeWord, attackSlash3, Color.red);
                             AddEffect(activeWord, activeBaddie.display.spriteRenderer.sprite, Color.white, new Vector3(-1f, 0, 0));
-                            activeBaddie.SetWord(GetRandomWord(curses));
+                            activeBaddie.SetWord(GetRandomWord(curses, false));
                             activeBaddie.Reset();
                             SetBaddie(null);
                         }
@@ -498,7 +518,22 @@ public class WordManager: MonoBehaviour
                             // hit but no kill
                             PlayClip(audioHit1);
                             AddEffect(activeWord, attackSlash1, Color.red);
-                            activeWord.SetWord(GetRandomWord(cleans));
+
+                            string theWord = GetRandomWord(cleans, true);
+                            if (theWord != null)
+                            {
+                                activeWord.SetWord(theWord);
+                            } else {
+                                AddStreak();
+                                kills++;
+                                words.Remove(activeWord);
+                                if (activeWord is GoodieWord)
+                                {
+                                    PlayClip(audioDie);
+                                    AddEffect(activeWord, attackKill, Color.red);
+                                    KillGoodie((GoodieWord)activeWord);
+                                }
+                            }
                         }
                     }
                     activeWord = null;
@@ -517,7 +552,7 @@ public class WordManager: MonoBehaviour
 
                 if (activeBaddie != null)
                 {
-                    activeBaddie.SetWord(GetRandomWord(curses));
+                    activeBaddie.SetWord(GetRandomWord(curses, false));
                     activeBaddie.Reset();
                     SetBaddie(null);
                 }
