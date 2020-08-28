@@ -71,6 +71,7 @@ public class WordManager: MonoBehaviour
     private int gold = 10;
     private int streak = 0;
     private int maxStreak = 0;
+    private int wave = 0;
 
     private int treasureChance = 30;
 
@@ -205,7 +206,8 @@ public class WordManager: MonoBehaviour
         while (randomWord == null && tries++ < 100) {
             int randomIndex = UnityEngine.Random.Range(0, list.Length);
             randomWord = list[randomIndex].Trim();
-            if (words.Any(x => randomWord[0] == x.word[0]))
+            if (words.Any(x => randomWord[0] == x.word[0])
+                || randomWord.Length > (6 + wave * 2))
             {
                 randomWord = null;
             }
@@ -334,6 +336,13 @@ public class WordManager: MonoBehaviour
             Word word = new GoodieWord(theWord, wordSpawner.SpawnGoodie(), characterClass);
             words.Add(word);
         }
+    }
+
+    public void NewWave(int wave)
+    {
+        this.wave = wave;
+        //AddTip("End wave " + (wave - 1).ToString(), new Vector3(0, 3f, 0));
+        AddFutureTip("Wave " + wave.ToString(), new Vector3(0, 3f, 0), 5f);
     }
 
     private void AddEffect(Word word, Sprite sprite, Color color)
