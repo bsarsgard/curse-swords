@@ -13,11 +13,11 @@ public class GoodieWord : Word
         switch (characterClass)
         {
             case Word.CharacterClass.Fighter:
-                fallSpeed = 0.2f;
+                fallSpeed = 0.3f;
                 hitPoints = 3f;
                 break;
             case Word.CharacterClass.Thief:
-                fallSpeed = 0.6f;
+                fallSpeed = 0.5f;
                 hitPoints = 1f;
                 break;
             case Word.CharacterClass.Wizard:
@@ -49,6 +49,12 @@ public class GoodieWord : Word
                 rotation = -8f;
                 rotationStep = -rotationStep;
             }
+        }
+
+        if (!this.WordDead())
+        {
+            float scale = 1f + ((hitPoints - 1f) / 3f);
+            this.display.spriteRenderer.transform.localScale = new Vector3(200 * scale, 200 * scale, 200 * scale);
         }
     }
 }
