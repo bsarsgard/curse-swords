@@ -4,13 +4,13 @@ using UnityEngine;
 
 public class TreasureWord : Word
 {
-    // TODO: count down a timer to disappear
-    public TreasureWord(string word, WordDisplay display, int streak): base(word, display, Word.CharacterClass.TreasureCoin) {
+    public TreasureWord(string word, WordDisplay display, int swordChance): base(word, display, Word.CharacterClass.TreasureCoin) {
         gold = 1;
         timed = true;
         this.timer = 10f;
-        if (Random.Range(streak, 100) > 60)
+        if (Random.Range(0, 100) < swordChance)
         {
+            display.spriteRenderer.color = Color.yellow;
             SetCharacterClass(Word.CharacterClass.TreasureSword);
             this.timer = 5f;
         }
@@ -21,10 +21,16 @@ public class TreasureWord : Word
         return false;
     }
 
-    /*
-    public override void RandomWord(List<Word> words)
+    public override void Update()
     {
-        SetWord(WordGenerator.GetRandomClean(words));
+        base.Update();
+
+        if (timer < 5f) {
+            display.spriteRenderer.color = new Color(
+                display.spriteRenderer.color.r,
+                display.spriteRenderer.color.g,
+                display.spriteRenderer.color.b,
+                (timer / 5f));
+        }
     }
-    */
 }

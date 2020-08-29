@@ -71,6 +71,7 @@ public class WordManager: MonoBehaviour
     private int gold = 10;
     private int streak = 0;
     private int maxStreak = 0;
+    private int maxGold = 0;
     private int wave = 0;
 
     private int treasureChance = 30;
@@ -112,7 +113,8 @@ public class WordManager: MonoBehaviour
         AddSpell();
         AddChests(gold);
         AddTip("Type the words as they come down to defend your dungeon!", new Vector3(0, 3f, 0));
-        AddFutureTip("Power up your next attack by adding a Monster word", new Vector3(-1.5f, -2.5f, 0), 10f);
+        AddFutureTip("Some may take more than one hit to kill ...", new Vector3(0, 3f, 0), 10f);
+        AddFutureTip("Add a Monster word to kill them in one hit!", new Vector3(-2.5f, -1.5f, 0), 15f);
     }
 
     private void Update()
@@ -139,7 +141,6 @@ public class WordManager: MonoBehaviour
                 {
                     activeWord = null;
                 }
-                kills++;
                 word.Destroy();
                 words.Remove(word);
                 break;
@@ -157,7 +158,7 @@ public class WordManager: MonoBehaviour
         foreach (GameObject obj in effects)
         {
             SpriteRenderer renderer = obj.GetComponent<SpriteRenderer>();
-            if (renderer.color.a == 0)
+            if (renderer.color.a <= 0)
             {
                 effects.Remove(obj);
                 Destroy(obj);
@@ -172,9 +173,9 @@ public class WordManager: MonoBehaviour
         {
             SpriteRenderer renderer = obj.GetComponent<SpriteRenderer>();
             Text text = obj.GetComponent<Text>();
-            if (text.color.a == 0)
+            if (text.color.a <= 0)
             {
-                effects.Remove(obj);
+                tips.Remove(obj);
                 Destroy(obj);
                 break;
             }
@@ -207,7 +208,7 @@ public class WordManager: MonoBehaviour
             int randomIndex = UnityEngine.Random.Range(0, list.Length);
             randomWord = list[randomIndex].Trim();
             if (words.Any(x => randomWord[0] == x.word[0])
-                || randomWord.Length > (6 + wave * 2))
+                || randomWord.Length > (4 + wave * 2))
             {
                 randomWord = null;
             }
@@ -271,7 +272,7 @@ public class WordManager: MonoBehaviour
         if (gold <= 0)
         {
             KillScreenUiManager.kills = kills;
-            KillScreenUiManager.treasure = gold;
+            KillScreenUiManager.treasure = maxGold;
             KillScreenUiManager.streak = maxStreak;
             SceneManager.LoadScene("KillScreen");
         }
@@ -303,7 +304,12 @@ public class WordManager: MonoBehaviour
         string theWord = GetRandomWord(cleans, true);
         if (theWord != null)
         {
-            TreasureWord word = new TreasureWord(theWord, wordSpawner.SpawnTreasure(position), streak);
+            int swordChance = 0;
+            if (!activeSpell.IsActive())
+            {
+                swordChance = (streak + wave) * 5;
+            }
+            TreasureWord word = new TreasureWord(theWord, wordSpawner.SpawnTreasure(position), swordChance);
 
             if (word.characterClass == Word.CharacterClass.TreasureSword && !showedSwordTip)
             {
@@ -316,7 +322,11 @@ public class WordManager: MonoBehaviour
 
     public void AddSpell()
     {
-        activeSpell = new SpellWord(GetRandomWord(phrases, false), wordSpawner.SpawnSpell());
+        string phrase;
+        do {
+            phrase = GetRandomWord(phrases, false);
+        } while (phrase.Split(' ').Length > 3);
+        activeSpell = new SpellWord(phrase, wordSpawner.SpawnSpell());
         words.Add(activeSpell);
     }
 
@@ -383,6 +393,15 @@ public class WordManager: MonoBehaviour
         tips.Add(obj);
     }
 
+    private void AddGold(int num)
+    {
+        gold += num;
+        if (gold > maxGold)
+        {
+            maxGold = gold;
+        }
+    }
+
     private void AddStreak()
     {
         streak++;
@@ -425,6 +444,7 @@ public class WordManager: MonoBehaviour
 
     private void KillGoodie(GoodieWord word)
     {
+        kills++;
         if (UnityEngine.Random.Range(streak, 100) > treasureChance)
         {
             AddTreasure(word.display.transform.position);
@@ -468,6 +488,7 @@ public class WordManager: MonoBehaviour
                     }
                     else if (activeWord is TreasureWord)
                     {
+                        AddStreak();
                         if (activeWord.characterClass == Word.CharacterClass.TreasureSword)
                         {
                             if (!showedSwordPickupTip)
@@ -494,7 +515,7 @@ public class WordManager: MonoBehaviour
                         {
                             PlayClip(audioTreasure);
                             AddChestTreasure(activeWord.gold);
-                            gold += activeWord.gold;
+                            AddGold(activeWord.gold);
                         }
                         words.Remove(activeWord);
                     }
@@ -513,7 +534,6 @@ public class WordManager: MonoBehaviour
                         if (activeWord.WordDead())
                         {
                             AddStreak();
-                            kills++;
                             words.Remove(activeWord);
                             if (activeWord is GoodieWord)
                             {
@@ -532,14 +552,16 @@ public class WordManager: MonoBehaviour
                             if (theWord != null)
                             {
                                 activeWord.SetWord(theWord);
-                            } else {
+                            }
+                            else
+                            {
                                 AddStreak();
-                                kills++;
                                 words.Remove(activeWord);
                                 if (activeWord is GoodieWord)
                                 {
                                     PlayClip(audioDie);
                                     AddEffect(activeWord, attackKill, Color.red);
+                                    activeWord.Kill();
                                     KillGoodie((GoodieWord)activeWord);
                                 }
                             }

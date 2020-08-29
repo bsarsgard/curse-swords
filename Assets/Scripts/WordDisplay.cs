@@ -32,7 +32,7 @@ public class WordDisplay : MonoBehaviour
 
     public Sprite attackSlash1;
 
-    private Color activeColor = new Color(200f, 200f, 0f, 1f);
+    private Color activeColor = new Color(255f, 255f, 0f, 1f);
     private Color inactiveColor = Color.gray;
     private Color selectedColor = Color.red;
 
